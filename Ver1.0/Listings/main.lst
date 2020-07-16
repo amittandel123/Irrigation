@@ -1,0 +1,126 @@
+C51 COMPILER V9.05   MAIN                                                                  05/06/2017 12:46:54 PAGE 1   
+
+
+C51 COMPILER V9.05, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          
+   2          /**************************************************
+   3          Date: 26 April 2017
+   4          Author: Amit Tandel
+   5          Description: No timer, Delay using for loop
+   6                       Keypad not added
+   7          ***************************************************/
+   8          
+   9          
+  10          #include<reg51.h>
+  11          /* Motors */
+  12          sbit R1   = P3^0;
+  13          sbit R2   = P3^1;
+  14          /* All Valves */
+  15          sbit R3   = P0^0;
+  16          sbit R4   = P0^1;
+  17          sbit R5   = P0^2;
+  18          sbit R6   = P0^3;
+  19          sbit R7   = P0^4;
+  20          sbit R8   = P0^5;
+  21          sbit R9   = P0^6;
+  22          sbit R10  = P0^7;
+  23          /* Keypad */
+  24          void Delay(unsigned int);
+  25          void main(void)
+  26          {
+  27   1        P0 = 0;
+  28   1        P3 = 0;
+  29   1        R3 = 1;
+  30   1        Delay(1);
+  31   1        R1 = 1;
+  32   1        Delay(5);
+  33   1        R2 = 1;
+  34   1        Delay(5);
+  35   1        R2 = 0;
+  36   1        Delay(10);
+  37   1        
+  38   1        R4 = 1;
+  39   1        Delay(1);
+  40   1        R3 = 0;
+  41   1        Delay(5);
+  42   1        R2 = 1;
+  43   1        Delay(5);
+  44   1        R2 = 0;
+  45   1        Delay(10);
+  46   1        
+  47   1        R5 = 1;
+  48   1        Delay(1);
+  49   1        R4 = 0;
+  50   1        Delay(5);
+  51   1        R2 = 1;
+  52   1        Delay(5);
+  53   1        R2 = 0;
+  54   1        Delay(10);
+C51 COMPILER V9.05   MAIN                                                                  05/06/2017 12:46:54 PAGE 2   
+
+  55   1        
+  56   1        R6 = 1;
+  57   1        Delay(1);
+  58   1        R5 = 0;
+  59   1        Delay(5);
+  60   1        R2 = 1;
+  61   1        Delay(5);
+  62   1        R2 = 0;
+  63   1        Delay(10);
+  64   1        
+  65   1        R7 = 1;
+  66   1        Delay(1);
+  67   1        R6 = 0;
+  68   1        Delay(5);
+  69   1        R2 = 1;
+  70   1        Delay(5);
+  71   1        R2 = 0;
+  72   1        Delay(10);
+  73   1        
+  74   1        R8 = 1;
+  75   1        Delay(1);
+  76   1        R7 = 0;
+  77   1        Delay(5);
+  78   1        R2 = 1;
+  79   1        Delay(5);
+  80   1        R2 = 0;
+  81   1        Delay(10);
+  82   1        
+  83   1        R9 = 1;
+  84   1        Delay(1);
+  85   1        R8 = 0;
+  86   1        Delay(5);
+  87   1        R2 = 1;
+  88   1        Delay(5);
+  89   1        R2 = 0;
+  90   1        Delay(10);
+  91   1        
+  92   1        R10 = 1;
+  93   1        Delay(1);
+  94   1        R9 = 0;
+  95   1        Delay(5);
+  96   1        R2 = 1;
+  97   1        Delay(5);
+  98   1        R2 = 0;
+  99   1        Delay(10);
+ 100   1        
+ 101   1        R1 = 0;
+ 102   1        Delay(5);
+ 103   1        R10 = 0;
+ 104   1      }
+ 105          
+ 106          void Delay(unsigned int value)
+ 107          {
+ 108   1        unsigned int i;
+ 109   1        for(j=0;j<value;j++)
+*** ERROR C202 IN LINE 109 OF main.c: 'j': undefined identifier
+ 110   1          for(i=0;i<60000;i++);
+ 111   1      }
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  1 ERROR(S)

@@ -1,0 +1,7 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\keypad.obj",
+".\Objects\lcd.obj" 
+TO ".\Objects\Irrig_v3.0" 
+PRINT(".\Listings\Irrig_v3.m51") RAMSIZE(256) 
+CODE( 0X0000-0XFFFF )

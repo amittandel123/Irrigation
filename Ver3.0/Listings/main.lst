@@ -1,0 +1,181 @@
+C51 COMPILER V9.05   MAIN                                                                  11/28/2017 15:11:00 PAGE 1   
+
+
+C51 COMPILER V9.05, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /*******************************************************************************
+   2          * File Name: main.c
+   3          * Date: 27 April 2017
+   4          * Version: 2.0
+   5          * Description:
+   6          * This is source code for Irrig System
+   7          * Timer Added instead of for loop for delay
+   8          * Note:
+   9          * Owners: Amit Tandel
+  10          * Related Document:
+  11          * Code Tested With:
+  12          * PORT 0 : VALVES
+  13          * PORT 1 : LCD
+  14          * PORT 2 : KEYPAD
+  15          * PORT 3 : MOTOR
+  16          ********************************************************************************
+  17          * Copyright : All rights reserved.
+  18          *******************************************************************************/
+  19          
+  20          #include<reg51.h>
+  21          #include"keypad.h"
+  22          #include"lcd.h"
+  23          
+  24          /* Motors */
+  25          sbit R1   = P3^0;
+  26          sbit R2   = P3^1;
+  27          /* All Valves */
+  28          sbit R3   = P0^0;
+  29          sbit R4   = P0^1;
+  30          sbit R5   = P0^2;
+  31          sbit R6   = P0^3;
+  32          sbit R7   = P0^4;
+  33          sbit R8   = P0^5;
+  34          sbit R9   = P0^6;
+  35          sbit R10  = P0^7;
+  36          
+  37          #define V_OPEN_TIME 10
+  38          
+  39          void Timer_Init()
+  40          {             /* TMOD = |GATE|C/T|M1|M0|GATE|C/T|M1|M0|  */
+  41   1        TMOD=0x01;  /* Timer 0,Mode 1 - 16 bit timer */
+  42   1        TH0=0x00;   /* Counting will start from 0 upto 65534 */
+  43   1        TL0=0x00;   
+  44   1      }
+  45          void Wait(unsigned int value)
+  46          {     
+  47   1        unsigned int i;
+  48   1        TH0=0x00;   /* reloading */
+  49   1        TL0=0x00; 
+  50   1        for(i=0;i<=value;i++)
+  51   1        {
+  52   2          TR0=1;      /* Start the timer */ 
+  53   2          while(TF0==0);    /* wait till overflow */ 
+  54   2          TR0=0;      /* Stop the timer */ 
+C51 COMPILER V9.05   MAIN                                                                  11/28/2017 15:11:00 PAGE 2   
+
+  55   2          TF0=0;      /* Clear the Flag */
+  56   2        }
+  57   1      }
+  58          
+  59          void main(void)
+  60          {
+  61   1        P0 = 0x00;  // Port 0 as Output for Valves
+  62   1        P1 = 0x00;  // Port 1 as Output for LCD
+  63   1        P2 = 0xFF;  // Port 2 as Input for Keypad
+  64   1        P3 = 0x00;  // Port 3 as Output for Motor
+  65   1      
+  66   1        Timer_Init();
+  67   1        Initialize_LCD();
+  68   1        Send_Command_LCD(0x80);   // Set Cursor at 1st Line
+  69   1        Delay_LCD(5);
+  70   1        Display_Data_LCD("Water   Chemical",16);
+*** WARNING C214 IN LINE 70 OF main.c: 'Argument': conversion: pointer to non-pointer
+  71   1        Delay_LCD(5);
+  72   1        Send_Command_LCD(0xC0);   // Set Cursor at 2nd Line
+  73   1        Delay_LCD(5);
+  74   1        
+  75   1        Scan_Keypad();
+  76   1      
+  77   1        R3 = 1; // Open 1st valve 
+  78   1        Wait(V_OPEN_TIME);
+  79   1        R1 = 1; // Start Water Motor
+  80   1        Wait(Chem_Time);
+  81   1        R2 = 1; // Open Chemical Valve
+  82   1        Wait(Chem_Time);
+  83   1        R2 = 0; // Close Chemical Valve
+  84   1        Wait(Water_Time);
+  85   1      
+  86   1        R4 = 1; // Open 2nd Valve
+  87   1        Wait(V_OPEN_TIME);
+  88   1        R3 = 0; // Close 1st Valve
+  89   1        Wait(Chem_Time);
+  90   1        R2 = 1;
+  91   1        Wait(Chem_Time);
+  92   1        R2 = 0;
+  93   1        Wait(Water_Time);
+  94   1      
+  95   1        R5 = 1; // Open 3rd Valve
+  96   1        Wait(V_OPEN_TIME);
+  97   1        R4 = 0; // Close 2nd Valve
+  98   1        Wait(Chem_Time);
+  99   1        R2 = 1;
+ 100   1        Wait(Chem_Time);
+ 101   1        R2 = 0;
+ 102   1        Wait(Water_Time);
+ 103   1      
+ 104   1        R6 = 1;
+ 105   1        Wait(V_OPEN_TIME);
+ 106   1        R5 = 0;
+ 107   1        Wait(Chem_Time);
+ 108   1        R2 = 1;
+ 109   1        Wait(Chem_Time);
+ 110   1        R2 = 0;
+ 111   1        Wait(Water_Time);
+ 112   1      
+ 113   1        R7 = 1;
+ 114   1        Wait(V_OPEN_TIME);
+ 115   1        R6 = 0;
+C51 COMPILER V9.05   MAIN                                                                  11/28/2017 15:11:00 PAGE 3   
+
+ 116   1        Wait(Chem_Time);
+ 117   1        R2 = 1;
+ 118   1        Wait(Chem_Time);
+ 119   1        R2 = 0;
+ 120   1        Wait(Water_Time);
+ 121   1      
+ 122   1        R8 = 1;
+ 123   1        Wait(V_OPEN_TIME);
+ 124   1        R7 = 0;
+ 125   1        Wait(Chem_Time);
+ 126   1        R2 = 1;
+ 127   1        Wait(Chem_Time);
+ 128   1        R2 = 0;
+ 129   1        Wait(Water_Time);
+ 130   1      
+ 131   1        R9 = 1;
+ 132   1        Wait(V_OPEN_TIME);
+ 133   1        R8 = 0;
+ 134   1        Wait(Chem_Time);
+ 135   1        R2 = 1;
+ 136   1        Wait(Chem_Time);
+ 137   1        R2 = 0;
+ 138   1        Wait(Water_Time);
+ 139   1      
+ 140   1        R10 = 1;
+ 141   1        Wait(V_OPEN_TIME);
+ 142   1        R9 = 0;
+ 143   1        Wait(Chem_Time);
+ 144   1        R2 = 1;
+ 145   1        Wait(Chem_Time);
+ 146   1        R2 = 0;
+ 147   1        Wait(Water_Time);
+ 148   1      
+ 149   1        R1 = 0; // Stop Water Motor
+ 150   1        Wait(Chem_Time);
+ 151   1        R10 = 0;  // Close last Valve
+ 152   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    245    ----
+   CONSTANT SIZE    =     17    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

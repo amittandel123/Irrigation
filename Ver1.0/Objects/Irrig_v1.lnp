@@ -1,0 +1,4 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj" 
+TO ".\Objects\Irrig_v1.0" 
+PRINT(".\Listings\Irrig_v1.m51") RAMSIZE(256) 

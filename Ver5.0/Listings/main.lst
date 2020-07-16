@@ -1,0 +1,553 @@
+C51 COMPILER V9.05   MAIN                                                                  01/29/2018 20:35:47 PAGE 1   
+
+
+C51 COMPILER V9.05, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /*
+   2          Description: Valaves can be opened by the sequence decided by User.
+   3          Water motor & Chemical Motor Timing can be customised as per user requirement for each valve.
+   4          */
+   5          
+   6          #include<reg51.h>
+   7          #include<stdio.h>
+   8          
+   9          #define LCD_PORT                P1
+  10          #define KEY_PORT                P2
+  11          #define LCD_CursorHome1stLine   Send_Command(0x80)
+  12          #define LCD_CursorHome2ndLine   Send_Command(0xC0)
+  13          #define LCD_CursorBlink         Send_Command(0x0F)
+  14          #define LCD_CursorON            Send_Command(0x0E)
+  15          #define LCD_MovCursorRight      Send_Command(0x14)
+  16          
+  17          #define TRUE    1
+  18          #define FALSE   0
+  19          #define ON      1
+  20          #define OFF     0
+  21          #define OPEN    1
+  22          #define CLOSE   0
+  23          
+  24          #define InitWaterTime 1
+  25          
+  26          sbit RS=P3^2; // LCD RS
+  27          sbit EN=P3^3; // LCD EN
+  28          /* Keypad */
+  29          sbit ROW1=KEY_PORT^7;
+  30          sbit ROW2=KEY_PORT^6;
+  31          sbit ROW3=KEY_PORT^5;
+  32          sbit ROW4=KEY_PORT^4;
+  33          sbit COL1=KEY_PORT^3;
+  34          sbit COL2=KEY_PORT^2;
+  35          sbit COL3=KEY_PORT^1;
+  36          sbit COL4=KEY_PORT^0;
+  37          /* Motors */
+  38          sbit WATER_MOTOR  = P3^6;
+  39          sbit DOSE_MOTOR = P3^7;
+  40          /* All Valves */
+  41          sbit VALVE1 = P0^0;
+  42          sbit VALVE2 = P0^1;
+  43          sbit VALVE3 = P0^2;
+  44          sbit VALVE4 = P0^3;
+  45          sbit VALVE5 = P0^4;
+  46          sbit VALVE6 = P0^5;
+  47          sbit VALVE7 = P0^6;
+  48          sbit VALVE8 = P0^7;
+  49          
+  50          void Init();
+  51          //void Delay(unsigned int value);
+  52          void Send_Command(unsigned char comd);
+  53          void Display_Char(unsigned char c);
+  54          void Display_Data(unsigned char mdata[], unsigned int count);
+C51 COMPILER V9.05   MAIN                                                                  01/29/2018 20:35:47 PAGE 2   
+
+  55          void Clear_LCD();
+  56          void T0M1Delay(void);
+  57          void Sec_Delay();
+  58          void Minute_Delay();
+  59          //void Hour_Delay();
+  60          
+  61          unsigned int ProgStartd = FALSE,ChangeDisplay = 1, ValveSetting = TRUE, WaterSetting = FALSE, DoseSetting 
+             -= FALSE;
+  62          unsigned int WKey_Count=0, DKey_Count=0;
+  63          unsigned char LCD1stLine=128,LCD2ndLine=192;
+  64          long int Water_Time=0, Dose_Time=0, Time=0;
+  65          int j,ValveNumber = 1,Valve_Sequence[9],Water_Sequence[9],Dose_Sequence[9];
+  66            
+  67          void Init()
+  68          {
+  69   1        P0=0x00;    // P0 as O/P port for VALVES
+  70   1        P1=0x00;    // P1 as O/P port for LCD
+  71   1        P2=0xFF;    // P2 as i/p port for Keypad
+  72   1        P3=0x00;    // P3 as O/P port for Motor
+  73   1        
+  74   1        WATER_MOTOR = OFF;  // Water Motor OFF
+  75   1        DOSE_MOTOR  = OFF;  // Chemical Motor OFF
+  76   1        P0 = OFF; // All valves OFF
+  77   1        
+  78   1        Send_Command(0x38); // LCD as 2 Line, 5x7 Matrix
+  79   1        //Delay(5);
+  80   1        Send_Command(0x0C); // Display ON, Cursor Blinking
+  81   1        //Delay(5);
+  82   1        Clear_LCD();
+  83   1      }
+  84          
+  85          unsigned char ConvertToChar(int num)
+  86          {
+  87   1        char c = num +48;
+  88   1        return c;
+  89   1      }
+  90          
+  91          void Delay(unsigned int value)
+  92          {
+  93   1        unsigned int u,v;
+  94   1        for(u=0;u<value;u++)
+  95   1          for(v=0;v<100;v++);
+  96   1      }
+  97          
+  98          void Sec_Delay(unsigned int sec)
+  99          {
+ 100   1        int i,j;
+ 101   1        for(j=0;j<sec;j++)
+ 102   1          for(i=0;i<20;i++) // 1Sec Delay
+ 103   1            T0M1Delay();
+ 104   1      }
+ 105          void Minute_Delay(unsigned int min)
+ 106          {
+ 107   1        int i,j;
+ 108   1        for(j=0;j<min;j++)
+ 109   1          for(i=0;i<1200;i++) // 1Minute Delay
+ 110   1            T0M1Delay();
+ 111   1      }
+ 112          
+ 113          /*************Delay Using Timer *************/
+ 114          void T0M1Delay()
+ 115          {
+C51 COMPILER V9.05   MAIN                                                                  01/29/2018 20:35:47 PAGE 3   
+
+ 116   1        TMOD = 0x01;  //Timer 0, mode 1 (16 bit)
+ 117   1        TL0 = 0xFD;   // 50mS Delay. FFFFh-4BFDh = B402h = 46082+1 = 46083
+ 118   1        TH0 = 0x4B;   // 46083 X 1.085uS = 50mS
+ 119   1        TR0 = 1;      // Turn ON timer
+ 120   1        while(TF0 == 0);  // wait for TF0 to roll over
+ 121   1        TR0 = 0;      // Turn OFF Timer
+ 122   1        TF0 = 0;      // reset TF0  
+ 123   1      }
+ 124          
+ 125          void Send_Command(unsigned char comd)
+ 126          {
+ 127   1        RS=0;
+ 128   1        EN=1;
+ 129   1        LCD_PORT = comd;
+ 130   1        Delay(10);
+ 131   1        EN=0;
+ 132   1        Delay(20);
+ 133   1      }
+ 134          
+ 135          void Display_Char(unsigned char c)
+ 136          {
+ 137   1        RS=1;
+ 138   1        EN=1;
+ 139   1        LCD_PORT = c;
+ 140   1        Delay(100);
+ 141   1        EN=0;
+ 142   1        Delay(10);
+ 143   1      }
+ 144          
+ 145          void Display_Data(unsigned char mdata[], unsigned int count)
+ 146          {
+ 147   1        unsigned char x;
+ 148   1        for(x=0;x<count;x++)
+ 149   1        {
+ 150   2          RS=1;
+ 151   2          EN=1;
+ 152   2          LCD_PORT = mdata[x];
+ 153   2          Delay(100);
+ 154   2          EN=0;
+ 155   2        }
+ 156   1        Delay(10);
+ 157   1      }
+ 158          
+ 159          void Clear_LCD()
+ 160          {
+ 161   1        Send_Command(0x01);
+ 162   1        //Sec_Delay(1);
+ 163   1        Send_Command(0x02);
+ 164   1        //Sec_Delay(1);
+ 165   1      }
+ 166          
+ 167          unsigned int Read_Key()
+ 168          {
+ 169   1        ROW1 = 0; ROW2 = 1; ROW3 = 1; ROW4 = 1;   
+ 170   1        if(COL1==0) {   while(COL1==0);   return 1; }
+ 171   1        if(COL2==0) {   while(COL2==0);   return 2; }
+ 172   1        if(COL3==0) {   while(COL3==0);   return 3; }
+ 173   1        if(COL4==0) {   while(COL4==0);   return 10;} //A
+ 174   1        
+ 175   1        ROW1 = 1; ROW2 = 0; ROW3 = 1; ROW4 = 1;   
+ 176   1        if(COL1==0) {   while(COL1==0);   return 4; }
+ 177   1        if(COL2==0) {   while(COL2==0);   return 5; }
+C51 COMPILER V9.05   MAIN                                                                  01/29/2018 20:35:47 PAGE 4   
+
+ 178   1        if(COL3==0) {   while(COL3==0);   return 6; }
+ 179   1        if(COL4==0) {   while(COL4==0);   return 11;} //B
+ 180   1        
+ 181   1        ROW1 = 1; ROW2 = 1; ROW3 = 0; ROW4 = 1;   
+ 182   1        if(COL1==0) {   while(COL1==0);   return 7; }
+ 183   1        if(COL2==0) {   while(COL2==0);   return 8; }
+ 184   1        if(COL3==0) {   while(COL3==0);   return 9; }
+ 185   1        if(COL4==0) {   while(COL4==0);   return 12;} //C
+ 186   1        
+ 187   1        ROW1 = 1; ROW2 = 1; ROW3 = 1; ROW4 = 0;   
+ 188   1        if(COL1==0) {   while(COL1==0);   return 14;} //*
+ 189   1        if(COL2==0) {   while(COL2==0);   return 0; }
+ 190   1        if(COL3==0) {   while(COL3==0);   return 15;} //#
+ 191   1        if(COL4==0) {   while(COL4==0);   return 13;} //D
+ 192   1        
+ 193   1        return 'n'; // No key
+ 194   1      }
+ 195          
+ 196          void main()
+ 197          {
+ 198   1        Init();
+ 199   1        LCD_CursorHome1stLine;
+ 200   1        Display_Data("Welcome !!!",11);
+ 201   1        LCD_CursorHome2ndLine;
+ 202   1        Display_Data("Select Sequence",15);
+ 203   1        Sec_Delay(3);
+ 204   1        LCD_CursorBlink;
+ 205   1        while(1)
+ 206   1        {
+ 207   2          unsigned char Key = 'n';
+ 208   2          while(Key == 'n')
+ 209   2          {
+ 210   3            if(ChangeDisplay)
+ 211   3            {
+ 212   4              ChangeDisplay = FALSE;
+ 213   4              LCD_CursorHome1stLine;
+ 214   4              switch(ValveNumber)
+ 215   4              {
+ 216   5                case 1 : 
+ 217   5                  //LCD_CursorHome1stLine;
+ 218   5                  Display_Data("1st Valve : ",12);
+ 219   5                  LCD_CursorHome2ndLine;
+ 220   5                  Display_Data("W:        D:   ",15);
+ 221   5                  Send_Command(LCD1stLine+12);
+ 222   5                break;
+ 223   5                case 2 : 
+ 224   5                  //LCD_CursorHome1stLine;
+ 225   5                  Display_Data("2nd Valve : ",12);
+ 226   5                  //LCD_CursorHome2ndLine;
+ 227   5                  //Display_Data("W:        D:   ",15);
+ 228   5                  //Send_Command(LCD1stLine+12);
+ 229   5                break;
+ 230   5                case 3 : 
+ 231   5                  //LCD_CursorHome1stLine;
+ 232   5                  Display_Data("3rd Valve : ",12);
+ 233   5                  //LCD_CursorHome2ndLine;
+ 234   5                  //Display_Data("W:        D:   ",15);
+ 235   5                  //Send_Command(LCD1stLine+12);
+ 236   5                break;          
+ 237   5                case 4 : 
+ 238   5                  //LCD_CursorHome1stLine;
+ 239   5                  Display_Data("4th Valve : ",12);
+C51 COMPILER V9.05   MAIN                                                                  01/29/2018 20:35:47 PAGE 5   
+
+ 240   5                  //LCD_CursorHome2ndLine;
+ 241   5                  //Display_Data("W:        D:   ",15);
+ 242   5                  //Send_Command(LCD1stLine+12);
+ 243   5                break;
+ 244   5                case 5 : 
+ 245   5                  //LCD_CursorHome1stLine;
+ 246   5                  Display_Data("5th Valve : ",12);
+ 247   5                  //LCD_CursorHome2ndLine;
+ 248   5                  //Display_Data("W:        D:   ",15);
+ 249   5                  //Send_Command(LCD1stLine+12);
+ 250   5                break;
+ 251   5                case 6 : 
+ 252   5                  //LCD_CursorHome1stLine;
+ 253   5                  Display_Data("6th Valve : ",12);
+ 254   5                  //LCD_CursorHome2ndLine;
+ 255   5                  //Display_Data("W:        D:   ",15);
+ 256   5                  //Send_Command(LCD1stLine+12);
+ 257   5                break;
+ 258   5                case 7 : 
+ 259   5                  //LCD_CursorHome1stLine;
+ 260   5                  Display_Data("7th Valve : ",12);
+ 261   5                  //LCD_CursorHome2ndLine;
+ 262   5                  //Display_Data("W:        D:   ",15);
+ 263   5                  //Send_Command(LCD1stLine+12);
+ 264   5                break;
+ 265   5                case 8 : 
+ 266   5                  //LCD_CursorHome1stLine;
+ 267   5                  Display_Data("8th Valve : ",12);
+ 268   5                  //LCD_CursorHome2ndLine;
+ 269   5                  //Display_Data("W:        D:   ",15);
+ 270   5                  //Send_Command(LCD1stLine+12);
+ 271   5                break;          
+ 272   5              }
+ 273   4            }
+ 274   3            Key = Read_Key();
+ 275   3            if(Key != 'n')
+ 276   3            {
+ 277   4              if(Key == 10) // A means OK for that Valve-setting
+ 278   4              {
+ 279   5                ChangeDisplay = TRUE;
+ 280   5                ValveNumber++;  // Increment ValveNumber
+ 281   5                if(ValveNumber > 8) // Restart Valve Sequence if Number of Valves exceeds 8
+ 282   5                {
+ 283   6                  ValveNumber = 1;
+ 284   6                }
+ 285   5              }
+ 286   4              if(Key == 13) // Start program on D
+ 287   4              {
+ 288   5                ProgStartd = TRUE;
+ 289   5                Clear_LCD();
+ 290   5                LCD_CursorHome1stLine;
+ 291   5                Display_Data("Program Started",15);
+ 292   5                LCD_CursorHome2ndLine;
+ 293   5                break;  // break from while(Key == 'n')
+ 294   5              }
+ 295   4              if(ValveSetting == TRUE)
+ 296   4              {
+ 297   5                if((Key > 0)&&(Key < 9))  // accept only 1 to 8
+ 298   5                {
+ 299   6                  Send_Command(LCD1stLine+12);
+ 300   6                  Display_Char(ConvertToChar(Key));
+ 301   6                  Valve_Sequence[ValveNumber] = Key;
+C51 COMPILER V9.05   MAIN                                                                  01/29/2018 20:35:47 PAGE 6   
+
+ 302   6                  ValveSetting = FALSE;
+ 303   6                  WaterSetting = TRUE;
+ 304   6                  Send_Command(LCD2ndLine+2); // Set cursor at 2nd line 2nd position
+ 305   6                }         
+ 306   5              }
+ 307   4              else if(WaterSetting == TRUE)
+ 308   4              {
+ 309   5                ++WKey_Count;
+ 310   5                if(WKey_Count == 1)
+ 311   5                {
+ 312   6                  Water_Time = Key*100;
+ 313   6                  Display_Char(ConvertToChar(Key));
+ 314   6                }
+ 315   5                else if(WKey_Count == 2)
+ 316   5                {
+ 317   6                  Water_Time = Water_Time + Key*10;
+ 318   6                  Display_Char(ConvertToChar(Key));
+ 319   6                }
+ 320   5                else if(WKey_Count == 3)
+ 321   5                {
+ 322   6                  Water_Time = Water_Time + Key;
+ 323   6                  Display_Char(ConvertToChar(Key));
+ 324   6                  WaterSetting = FALSE;
+ 325   6                  DoseSetting = TRUE;
+ 326   6                  WKey_Count = 0;
+ 327   6                  Water_Sequence[ValveNumber] = Water_Time; // Store water time in array
+ 328   6                  Send_Command(LCD2ndLine+12);  // Set Cursor at 2nd Line 12th Position
+ 329   6                }
+ 330   5              }
+ 331   4              else if(DoseSetting == TRUE)
+ 332   4              {
+ 333   5                ++DKey_Count;
+ 334   5                if(DKey_Count == 1)
+ 335   5                {
+ 336   6                  Dose_Time = Key*100;
+ 337   6                  Display_Char(ConvertToChar(Key));
+ 338   6                }
+ 339   5                else if(DKey_Count == 2)
+ 340   5                {
+ 341   6                  Dose_Time = Dose_Time + Key*10;
+ 342   6                  Display_Char(ConvertToChar(Key));
+ 343   6                }
+ 344   5                else if(DKey_Count == 3)
+ 345   5                {
+ 346   6                  Dose_Time = Dose_Time + Key;
+ 347   6                  Display_Char(ConvertToChar(Key));
+ 348   6                  ValveSetting = TRUE;
+ 349   6                  DoseSetting = FALSE;
+ 350   6                  DKey_Count = 0;
+ 351   6                  Dose_Sequence[ValveNumber] = Dose_Time; // Store Dose time in array
+ 352   6                  Send_Command(LCD1stLine+12);  // Set Cursor at 1st Line
+ 353   6                }
+ 354   5              }
+ 355   4            }
+ 356   3          } // while(Key == 'n') loop
+ 357   2          
+ 358   2          if(ProgStartd)
+ 359   2          {
+ 360   3              Clear_LCD();
+ 361   3            /* Start Motors & Open Valves */
+ 362   3            ProgStartd = FALSE; /* RESET Program status */
+ 363   3            //Time = Water_Time-Chem_Time-InitWaterTime;  // 
+C51 COMPILER V9.05   MAIN                                                                  01/29/2018 20:35:47 PAGE 7   
+
+ 364   3            //Time = 1; // For testing purpose
+ 365   3            for(j = 1; j <= ValveNumber; j++)
+ 366   3            {
+ 367   4              switch(Valve_Sequence[j])
+ 368   4              {
+ 369   5                case 1:
+ 370   5                  VALVE1 = OPEN;
+ 371   5                  LCD_CursorHome2ndLine;
+ 372   5                  Display_Data("VALVE 1 OPEN",12);
+ 373   5                  Sec_Delay(10);  // WAIT FOR 10 SEC
+ 374   5                  P0 = 0x01;  // Valve 1 OPEN, rest Closed
+ 375   5                  WATER_MOTOR = ON;
+ 376   5                  Minute_Delay(InitWaterTime);
+ 377   5                  //if(Dose_Sequence[j]>0)
+ 378   5                    DOSE_MOTOR = ON;
+ 379   5                  Minute_Delay(Dose_Sequence[j]);
+ 380   5                  DOSE_MOTOR = OFF;
+ 381   5                  Minute_Delay(Water_Sequence[j]);
+ 382   5                  //Minute_Delay(Time);
+ 383   5                break;
+ 384   5                
+ 385   5                case 2:
+ 386   5                  VALVE2 = OPEN;
+ 387   5                  LCD_CursorHome2ndLine;
+ 388   5                  Display_Data("VALVE 2 OPEN",12);
+ 389   5                  Sec_Delay(10);  // WAIT FOR 10 SEC
+ 390   5                  P0 = 0x02;  // Valve 2 OPEN, rest Closed
+ 391   5                  WATER_MOTOR = ON;
+ 392   5                  Minute_Delay(InitWaterTime);
+ 393   5                  //if(Dose_Sequence[j]>0)
+ 394   5                    DOSE_MOTOR = ON;
+ 395   5                  Minute_Delay(Dose_Sequence[j]);
+ 396   5                  DOSE_MOTOR = OFF;
+ 397   5                  Minute_Delay(Water_Sequence[j]);
+ 398   5                  //Minute_Delay(Time);
+ 399   5                break;
+ 400   5                
+ 401   5                case 3:
+ 402   5                  VALVE3 = OPEN;
+ 403   5                  LCD_CursorHome2ndLine;
+ 404   5                  Display_Data("VALVE 3 OPEN",12);      
+ 405   5                  Sec_Delay(10);  // WAIT FOR 10 SEC
+ 406   5                  P0 = 0x04;  // Valve 3 OPEN, rest Closed
+ 407   5                  WATER_MOTOR = ON;
+ 408   5                  Minute_Delay(InitWaterTime);
+ 409   5                  //if(Dose_Sequence[j]>0)
+ 410   5                    DOSE_MOTOR = ON;
+ 411   5                  Minute_Delay(Dose_Sequence[j]);
+ 412   5                  DOSE_MOTOR = OFF;
+ 413   5                  Minute_Delay(Water_Sequence[j]);
+ 414   5                  //Minute_Delay(Time);     
+ 415   5                break;
+ 416   5                
+ 417   5                case 4:
+ 418   5                  VALVE4 = OPEN;
+ 419   5                  LCD_CursorHome2ndLine;
+ 420   5                  Display_Data("VALVE 4 OPEN",12);      
+ 421   5                  Sec_Delay(10);  // WAIT FOR 10 SEC
+ 422   5                  P0 = 0x08;  // Valve 4 OPEN, rest Closed
+ 423   5                  WATER_MOTOR = ON;
+ 424   5                  Minute_Delay(InitWaterTime);
+ 425   5                  //if(Dose_Sequence[j]>0)
+C51 COMPILER V9.05   MAIN                                                                  01/29/2018 20:35:47 PAGE 8   
+
+ 426   5                    DOSE_MOTOR = ON;
+ 427   5                  Minute_Delay(Dose_Sequence[j]);
+ 428   5                  DOSE_MOTOR = OFF;
+ 429   5                  Minute_Delay(Water_Sequence[j]);
+ 430   5                  //Minute_Delay(Time);     
+ 431   5                break;  
+ 432   5              
+ 433   5                case 5:
+ 434   5                  VALVE5 = OPEN;
+ 435   5                  LCD_CursorHome2ndLine;
+ 436   5                  Display_Data("VALVE 5 OPEN",12);      
+ 437   5                  Sec_Delay(10);  // WAIT FOR 10 SEC
+ 438   5                  P0 = 0x10;  // Valve 5 OPEN, rest Closed
+ 439   5                  WATER_MOTOR = ON;
+ 440   5                  Minute_Delay(InitWaterTime);
+ 441   5                  //if(Dose_Sequence[j]>0)
+ 442   5                    DOSE_MOTOR = ON;
+ 443   5                  Minute_Delay(Dose_Sequence[j]);
+ 444   5                  DOSE_MOTOR = OFF;
+ 445   5                  Minute_Delay(Water_Sequence[j]);
+ 446   5                  //Minute_Delay(Time);     
+ 447   5                break;
+ 448   5                
+ 449   5                case 6:
+ 450   5                  VALVE6 = OPEN;
+ 451   5                  LCD_CursorHome2ndLine;
+ 452   5                  Display_Data("VALVE 6 OPEN",12);      
+ 453   5                  Sec_Delay(10);  // WAIT FOR 10 SEC
+ 454   5                  P0 = 0x20;  // Valve 6 OPEN, rest Closed
+ 455   5                  WATER_MOTOR = ON;
+ 456   5                  Minute_Delay(InitWaterTime);
+ 457   5                  //if(Dose_Sequence[j]>0)
+ 458   5                    DOSE_MOTOR = ON;
+ 459   5                  Minute_Delay(Dose_Sequence[j]);
+ 460   5                  DOSE_MOTOR = OFF;
+ 461   5                  Minute_Delay(Water_Sequence[j]);
+ 462   5                  //Minute_Delay(Time);     
+ 463   5                break;
+ 464   5                
+ 465   5                case 7:
+ 466   5                  VALVE7 = OPEN;
+ 467   5                  LCD_CursorHome2ndLine;
+ 468   5                  Display_Data("VALVE 7 OPEN",12);      
+ 469   5                  Sec_Delay(10);  // WAIT FOR 10 SEC
+ 470   5                  P0 = 0x40;  // Valve 7 OPEN, rest Closed
+ 471   5                  WATER_MOTOR = ON;
+ 472   5                  Minute_Delay(InitWaterTime);
+ 473   5                  //if(Dose_Sequence[j]>0)
+ 474   5                    DOSE_MOTOR = ON;
+ 475   5                  Minute_Delay(Dose_Sequence[j]);
+ 476   5                  DOSE_MOTOR = OFF;
+ 477   5                  Minute_Delay(Water_Sequence[j]);
+ 478   5                  //Minute_Delay(Time);     
+ 479   5                break;
+ 480   5                
+ 481   5                case 8:
+ 482   5                  VALVE8 = OPEN;
+ 483   5                  LCD_CursorHome2ndLine;
+ 484   5                  Display_Data("VALVE 8 OPEN",12);      
+ 485   5                  Sec_Delay(10);  // WAIT FOR 10 SEC
+ 486   5                  P0 = 0x80;  // Valve 8 OPEN, rest Closed
+ 487   5                  WATER_MOTOR = ON;
+C51 COMPILER V9.05   MAIN                                                                  01/29/2018 20:35:47 PAGE 9   
+
+ 488   5                  Minute_Delay(InitWaterTime);
+ 489   5                  //if(Dose_Sequence[j]>0)
+ 490   5                    DOSE_MOTOR = ON;
+ 491   5                  Minute_Delay(Dose_Sequence[j]);
+ 492   5                  DOSE_MOTOR = OFF;
+ 493   5                  Minute_Delay(Water_Sequence[j]);
+ 494   5                  //Minute_Delay(Time);     
+ 495   5                break;
+ 496   5                default: break;
+ 497   5              } // end of switch()
+ 498   4            } // end of for()
+ 499   3            
+ 500   3            WATER_MOTOR = OFF;
+ 501   3            Sec_Delay(10);  // WAIT FOR 10 SEC
+ 502   3            P0 = OFF; // Close All valves
+ 503   3            
+ 504   3            Clear_LCD();
+ 505   3            LCD_CursorHome1stLine;
+ 506   3            Display_Data("Program Finished",16);
+ 507   3            LCD_CursorHome2ndLine;
+ 508   3            Display_Data("RESET to Start",14);
+ 509   3            //break;  // break from forever loop
+ 510   3          }
+ 511   2        } // while(1) loop
+ 512   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1676    ----
+   CONSTANT SIZE    =    300    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     86      19
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

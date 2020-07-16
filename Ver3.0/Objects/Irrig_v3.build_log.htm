@@ -1,0 +1,45 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: µVision V5.22.0.0
+Copyright (C) 2016 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: A T, G, LIC=----
+ 
+Tool Versions:
+Toolchain:       PK51 Prof. Develpers Kit  Version: 9.05
+Toolchain Path:  C:\Keil_v5\C51\BIN
+C Compiler:      C51.exe V9.05
+Assembler:       A51.exe V8.02a
+Linker/Locator:  BL51.exe V6.22
+Library Manager: LIB51.exe V4.29
+Hex Converter:   OH51.exe V2.6
+CPU DLL:         S8051.DLL V3.79.0.1
+Dialog DLL:      DP51.DLL V2.62.0.1 
+<h2>Project:</h2>
+E:\Per\Projects\Irrigation\Ver3.0\Irrig_v3.0.uvproj
+Project File Date:  11/28/2017
+
+<h2>Output:</h2>
+Rebuild target 'Target 1'
+assembling STARTUP.A51...
+compiling main.c...
+main.c(70): warning C214: 'Argument': conversion: pointer to non-pointer
+compiling keypad.c...
+keypad.c(47): warning C214: 'Argument': conversion: pointer to non-pointer
+compiling lcd.c...
+lcd.c(49): warning C235: parameter 1: different types
+linking...
+*** ERROR L104: MULTIPLE PUBLIC DEFINITIONS
+    SYMBOL:  WATER_TIME
+    MODULE:  .\Objects\keypad.obj (KEYPAD)
+*** ERROR L104: MULTIPLE PUBLIC DEFINITIONS
+    SYMBOL:  CHEM_TIME
+    MODULE:  .\Objects\keypad.obj (KEYPAD)
+Program Size: data=34.0 xdata=0 code=1308
+Target not created.
+Build Time Elapsed:  00:00:02
+</pre>
+</body>
+</html>
